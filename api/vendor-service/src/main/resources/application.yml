@@ -1,0 +1,41 @@
+server:
+  port: ${PORT:8082}
+
+spring:
+  application:
+    name: vendor-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/vendor_db}
+    username: ${DB_USERNAME:ec}
+    password: ${DB_PASSWORD:ec}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # access tokens are signed by auth-service; its public key is fetched from here
+          jwk-set-uri: ${JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ec:
+  services:
+    auth-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+
+# Swagger UI at /swagger-ui.html; set API_DOCS_ENABLED=false in production
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:true}

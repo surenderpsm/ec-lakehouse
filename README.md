@@ -14,3 +14,6 @@ unzip brazilian-ecommerce.zip -d data
 
 ```
 > Note: You need to install kaggle-cli through `pip`. I used `pipx` because of pip requiring a venv.
+## API
+
+The multi-vendor e-commerce API that produces the data lives in [`api/`](api/README.md): Spring Boot microservices (gateway, auth, vendor, catalog, cart, order, payment), each with its own Postgres database and Docker image.

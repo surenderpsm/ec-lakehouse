@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Java / Maven / IDE
+*.class
+.idea/
+*.iml
+.vscode/
+!api/.mvn/wrapper/maven-wrapper.properties
