@@ -1,0 +1,45 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth
+              uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/auth/**,/api/v1/users/**,/api/v1/admin/users/**
+            - id: vendor
+              uri: ${VENDOR_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/vendors,/api/v1/vendors/**,/api/v1/admin/vendors/**
+            - id: catalog
+              uri: ${CATALOG_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/products,/api/v1/products/**,/api/v1/categories,/api/v1/categories/**,/api/v1/vendor/products/**,/api/v1/vendor/products
+            - id: cart
+              uri: ${CART_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/cart,/api/v1/cart/**
+            - id: order
+              uri: ${ORDER_SERVICE_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/v1/orders,/api/v1/orders/**,/api/v1/vendor/orders,/api/v1/vendor/orders/**
+            - id: payment
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/v1/payments/**,/api/v1/vendor/payouts,/api/v1/vendor/payouts/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

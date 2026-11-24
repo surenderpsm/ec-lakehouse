@@ -1,0 +1,106 @@
+# Local stack: one Postgres container plus one container per service.
+# Build the jars first (./mvnw package -DskipTests), then: docker compose up --build
+# Only the gateway is published on the host (port 8080).
+
+x-service: &service
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+x-service-env: &service-env
+  DB_USERNAME: ${POSTGRES_USER:-ec}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:-ec}
+  JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ec}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ec}
+      POSTGRES_DB: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  auth-service:
+    <<: *service
+    build: ./auth-service
+    image: ec-lakehouse/auth-service:${TAG:-latest}
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/auth_db
+      JWT_ISSUER: http://auth-service:8081
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@ec.local}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-change-me-admin}
+
+  vendor-service:
+    <<: *service
+    build: ./vendor-service
+    image: ec-lakehouse/vendor-service:${TAG:-latest}
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/vendor_db
+      AUTH_SERVICE_URL: http://auth-service:8081
+
+  catalog-service:
+    <<: *service
+    build: ./catalog-service
+    image: ec-lakehouse/catalog-service:${TAG:-latest}
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/catalog_db
+
+  cart-service:
+    <<: *service
+    build: ./cart-service
+    image: ec-lakehouse/cart-service:${TAG:-latest}
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/cart_db
+      CATALOG_SERVICE_URL: http://catalog-service:8083
+
+  order-service:
+    <<: *service
+    build: ./order-service
+    image: ec-lakehouse/order-service:${TAG:-latest}
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/order_db
+      CART_SERVICE_URL: http://cart-service:8084
+      CATALOG_SERVICE_URL: http://catalog-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8086
+
+  payment-service:
+    <<: *service
+    build: ./payment-service
+    image: ec-lakehouse/payment-service:${TAG:-latest}
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/payment_db
+
+  gateway:
+    build: ./gateway
+    image: ec-lakehouse/gateway:${TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8081
+      VENDOR_SERVICE_URL: http://vendor-service:8082
+      CATALOG_SERVICE_URL: http://catalog-service:8083
+      CART_SERVICE_URL: http://cart-service:8084
+      ORDER_SERVICE_URL: http://order-service:8085
+      PAYMENT_SERVICE_URL: http://payment-service:8086
+
+volumes:
+  pgdata:
