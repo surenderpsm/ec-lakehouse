@@ -17,3 +17,7 @@ unzip brazilian-ecommerce.zip -d data
 ## API
 
 The multi-vendor e-commerce API that produces the data lives in [`api/`](api/README.md): Spring Boot microservices (gateway, auth, vendor, catalog, cart, order, payment), each with its own Postgres database and Docker image.
+
+## Simulator
+
+[`simulator/`](simulator/README.md) is a Python script that plays a busy marketplace against the running API (sellers onboarding, customers browsing, buying and cancelling, sellers shipping), so you can watch it work and fill the databases with realistic data.
